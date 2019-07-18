@@ -9,6 +9,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.image as mpimg
 import math
+import csv
+
+import Utils
+
 
 
 # Load the pretrained model
@@ -22,6 +26,12 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 to_tensor = transforms.ToTensor()
 
+class Image_Similarity:
+
+    def __init__(self,similarity,image_path):
+        self.similarity = similarity
+        self.image_path = image_path
+
 def get_vector(image_name):
     # 1. Load the image with Pillow library
     img = Image.open(image_name)
@@ -33,10 +43,12 @@ def get_vector(image_name):
     # 4. Define a function that will copy the output of a layer
     def copy_data(m, i, o):
         my_embedding.copy_(o.data.squeeze())
-        #my_embedding.copy_(o.data)
     # 5. Attach that function to our selected layer
     h = layer.register_forward_hook(copy_data)
     # 6. Run the model on our transformed image
+    #t_img = t_img.view(1, -1)
+
+    print(t_img)
     model(t_img)
     # 7. Detach our copy function from the layer
     h.remove()
@@ -67,7 +79,9 @@ def get_similar_images(image_vector, dict_of_path_and_vector,threshold):
         similarity = find_similarity_percent(image_vector,val)
 
         if similarity > threshold:
-            similar_image_path.append(key)
+            image = Image_Similarity(similarity,key)
+            similar_image_path.append(image)
+
 
     return similar_image_path
 
@@ -86,26 +100,16 @@ def showImages(image_path_array):
         try:
 
             print(image_path_array[i-1])
-            fig.add_subplot(rows, columns, i)
-            img = mpimg.imread(image_path_array[i-1])
+            fig.add_subplot(rows, columns, i).set_title("{0:.2f}".format(float(image_path_array[i-1].similarity)))
+            img = mpimg.imread(image_path_array[i-1].image_path)
             plt.imshow(img)
         except:
             print('out of range')
     plt.show()
 
+def get_max_similarity_items(similar_image_dict,count):
+   list =  sorted(similar_image_dict, key=lambda image:image.similarity)
+   if len(list) > count:
+       return list[-count:]
 
-path = 'shoes/'
-
-file_name = 'file25.tif'
-
-img = mpimg.imread(path+file_name)
-plt.imshow(img)
-
-pic_to_compare = get_vector(path+file_name)
-
-image_vector_dict = get_image_vector_dict(path)
-
-similar_images = get_similar_images(pic_to_compare,image_vector_dict,0.88)
-
-showImages(similar_images)
 
